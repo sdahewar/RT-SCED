@@ -1,0 +1,2 @@
+ Index PgInSvc Pg_init Pgmax Pgmin EnergyRamp SpinRamp HasCostCurveData
+  1

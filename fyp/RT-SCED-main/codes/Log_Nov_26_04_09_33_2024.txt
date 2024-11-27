@@ -1,0 +1,7 @@
+LogItem 1 , t=0.00s , Start , this log file was created @ Tue Nov 26 04:09:33 2024
+LogItem 2 , t=0.00s , Milestone , Configure file has been parsed
+LogItem 3 , t=0.00s , Notice , The generic-case data file directory is: C:\Users\dahew\Desktop\fyp\RT-SCED-main\codes/generic_case/
+LogItem 4 , t=0.00s , Normal , The program will run the SCED simulation
+LogItem 5 , t=0.00s , Normal , The program will first load the available pyomo-format based data files
+LogItem 6 , t=0.00s , Notice , The name of the case data file loaded is: pyomoDataForGenericCaseModel.dat
+LogItem 7 , t=0.00s , Milestone , Start to load input data for pyomo simulation

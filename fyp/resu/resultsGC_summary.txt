@@ -1,0 +1,24 @@
+****************** Summary ******************
+Objective value is:  106051.009274087
+
+################## The following info is mainly for violations ##############
+
+**************** Branch ***********
+There are total 0 branches that are overloaded
+
+In total, there are 0 interface that are overloaded
+
+**************** Generator ***********
+Pg Max limit of generator 1 is violated by 33.23 MW
+Energy ramp-up limit of generator 1 is violated by 21.23 MW
+Pg Max limit of generator 3 is violated by 10.0 MW
+Pg Min limit of generator 5 is violated by 56.903713 MW
+The total spinning reserve shortage is 0.0 MW
+
+*************** Load ************
+The total shedded load is 0.0 MW
+
+*************** Contingency ************
+Contingency 2, the total shedded load is 0.0 MW
+Contingency 2, in total, there are 0 interface that are overloaded
+

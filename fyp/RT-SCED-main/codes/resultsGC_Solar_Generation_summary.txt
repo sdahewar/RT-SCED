@@ -1,0 +1,7 @@
+****************** Summary for Solar_Generation ******************
+Scenario: Solar_Generation
+Objective value is:  106051.009274087
+
+################## The following info is mainly for violations ##############
+
+**************** Generator ******************
