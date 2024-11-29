@@ -1,0 +1,26 @@
+****************** Summary for scenario_1 ******************
+Scenario: scenario_1
+Objective value is:  512.1826280619999
+
+################## The following info is mainly for violations ##############
+
+**************** Generator ******************
+Error processing generator 1: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 2: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 3: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 4: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 5: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 6: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 7: 'ConcreteModel' object has no attribute 'rrSlackVar'
+Error processing generator 10: No value for uninitialized NumericValue object pg[10]
+Total Renewable Generation: 0.0 MW
+Total Regulation Reserve Shortage: 0.0 MW
+Total Spinning Reserve Shortage: 0.0 MW
+Total Primary Reserve Shortage: 0.0 MW
+
+*************** Load Shedding ************
+Total Shedded Load: 0.0 MW
+
+*************** Contingency Results ************
+Contingency 2: Total Shedded Load = 0.0 MW
+End of scenario results.

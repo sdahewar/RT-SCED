@@ -121,63 +121,136 @@ if isRunSCED == True:
     myDiary.hotlineWithLogType(5, "Start to load input data for pyomo simulation")
     print("Start to load original input data for pyomo simulation")
     # Read scenario-specific generators
+# Load scenario-specific generators (solar and wind)
 new_generators = []
 with open(scenario_file, "r") as sf:
     for line in sf:
+        # For solar and wind generation, extract the relevant data
         if "SOLAR_GEN" in line or "WIND_GEN" in line:
             parts = line.split()
             new_generators.append({
-                "bus": int(parts[0]),
-                "type": parts[1],
-                "pgMax": float(parts[3]),
-                "pgMin": float(parts[4]),
+                "bus": int(parts[0]),           # Bus number
+                "type": parts[1],               # Type (SOLAR_GEN or WIND_GEN)
+                "pgMax": float(parts[3]),       # Maximum generation
+                "pgMin": float(parts[4]),       # Minimum generation
+                "pg_init": float(parts[10])     # Initial generation
             })
 
-    instanceSCED = SCEDModel.create_instance(DatafileED)
-    # Add new generators to the model
+instanceSCED = SCEDModel.create_instance(DatafileED)
 
+# Ensure the "Gen_type" and "Gen_costCurveFlag" parameters exist
+if not hasattr(instanceSCED, "Gen_type"):
+    instanceSCED.add_component("Gen_type", Param(instanceSCED.GEN, mutable=True))
+if not hasattr(instanceSCED, "Gen_costCurveFlag"):
+    instanceSCED.add_component("Gen_costCurveFlag", Param(instanceSCED.GEN, mutable=True, default=0))
 
-# Before modifying Gen_type
-if hasattr(instanceSCED, "Gen_type"):
-    instanceSCED.del_component("Gen_type")
-instanceSCED.add_component("Gen_type", Param(instanceSCED.GEN, mutable=True))
+# Load scenario-specific generators (solar and wind)
+new_generators = []
+with open(scenario_file, "r") as sf:
+    for line in sf:
+        # For solar and wind generation, extract the relevant data
+        if "SOLAR_GEN" in line or "WIND_GEN" in line:
+            parts = line.split()
+            new_generators.append({
+                "bus": int(parts[0]),           # Bus number
+                "type": parts[1],               # Type (SOLAR_GEN or WIND_GEN)
+                "pgMax": float(parts[3]),       # Maximum generation
+                "pgMin": float(parts[4]),       # Minimum generation
+                "pg_init": float(parts[10])     # Initial generation
+            })
 
+# Create the instance of the model with the given data file
+instanceSCED = SCEDModel.create_instance(DatafileED)
 
+# Add new generators (solar and wind) to the model
 for gen in new_generators:
     gen_bus = gen["bus"]
     gen_type = gen["type"]
     pg_max = gen["pgMax"]
     pg_min = gen["pgMin"]
-
+    pg_init = gen["pg_init"]
+    
     # Add generator to the model
     instanceSCED.GEN.add(gen_bus)
     instanceSCED.Gen_isInSvc[gen_bus] = 1  # Set in-service status
 
-    # Initialize parameters
+    # Initialize parameters for this generator
     instanceSCED.Gen_pgMax[gen_bus] = pg_max
+    instanceSCED.Gen_pgInit[gen_bus] = pg_init
     instanceSCED.Gen_pgMin[gen_bus] = pg_min
     instanceSCED.Gen_type[gen_bus] = gen_type
+    instanceSCED.Gen_costCurveFlag[gen_bus] = 0  # Set to 0 by default
 
-    # Ensure `Gen_costCurveFlag` exists and is mutable
-    if not hasattr(instanceSCED, "Gen_costCurveFlag"):
-        instanceSCED.add_component("Gen_costCurveFlag", Param(instanceSCED.GEN, mutable=True, default=0))
-    instanceSCED.Gen_costCurveFlag[gen_bus] = 0
+    # Add to Solar or Wind generators
+    if gen_type == 'SOLAR_GEN':
+        instanceSCED.SOLAR_GEN.add(gen_bus)
+        instanceSCED.Solar_pgMax[gen_bus] = pg_max  # Solar pgMax
+        instanceSCED.Solar_pgMin[gen_bus] = pg_min  # Solar pgMin
+        instanceSCED.Solar_pg[gen_bus] = pg_init    # Initialize solar generation
+    elif gen_type == 'WIND_GEN':
+        instanceSCED.WIND_GEN.add(gen_bus)
+        instanceSCED.Wind_pgMax[gen_bus] = pg_max  # Wind pgMax
+        instanceSCED.Wind_pgMin[gen_bus] = pg_min  # Wind pgMin
+        instanceSCED.Wind_pg[gen_bus] = pg_init    # Initialize wind generation
 
-    
+# **Explicitly initialize the renewable generation values**
+# Ensure solar generation is initialized
+if hasattr(instanceSCED, "Solar_pg"):
+    for s in instanceSCED.SOLAR_GEN:
+        # Initialize with the pg_init value for solar generation
+        if instanceSCED.Solar_pg[s].value is None:  # Check if it's uninitialized
+            instanceSCED.Solar_pg[s] = pg_init  # Assign initial value if uninitialized
+
+# Ensure wind generation is initialized
+if hasattr(instanceSCED, "Wind_pg"):
+    for w in instanceSCED.WIND_GEN:
+        # Initialize with the pg_init value for wind generation
+        if instanceSCED.Wind_pg[w].value is None:  # Check if it's uninitialized
+            instanceSCED.Wind_pg[w] = pg_init  # Assign initial value if uninitialized
+
+# Ensure conventional generators (pg) are initialized with pg_init
+for g in instanceSCED.GEN:
+    if instanceSCED.pg[g].value is None:  # Check if it's uninitialized
+        instanceSCED.pg[g] = instanceSCED.Gen_pgInit[g]  # Initialize with pg_init value
+
+# Print out the generation of each generator for debugging
+print("\nGenerator Output (Generation Values):\n")
+# Print conventional generators
+for g in instanceSCED.GEN:
+    gen_name = str(g)  # Convert generator id to string for readability
+    pg_value = value(instanceSCED.pg[g])  # Get the value of conventional generator's generation
+    print(f"Generator {gen_name} Output (pg): {pg_value} MW")
+
+# Print solar generation output
+if hasattr(instanceSCED, "Solar_pg"):
+    for s in instanceSCED.SOLAR_GEN:
+        solar_pg_value = value(instanceSCED.Solar_pg[s])  # Get the value of solar generation
+        print(f"Solar Generator {s} Output (Solar_pg): {solar_pg_value} MW")
+
+# Print wind generation output
+if hasattr(instanceSCED, "Wind_pg"):
+    for w in instanceSCED.WIND_GEN:
+        wind_pg_value = value(instanceSCED.Wind_pg[w])  # Get the value of wind generation
+        print(f"Wind Generator {w} Output (Wind_pg): {wind_pg_value} MW")
+
+print("New generators have been successfully added and initialized.")
+
+# Now the model can proceed to preprocessing and solving
+instanceSCED.preprocess()  # Preprocess the model before solving
 
 
+# After loading the input data, perform additional steps if necessary
+myDiary.hotlineWithLogType(5, "Finish loading input data for pyomo simulation - an instance has been created")
+print("Finish loading original input data for pyomo simulation")
 
+# Auto-fix data if required
+autoFixData = True
+if autoFixData:
+    for idx in instanceSCED.GenCost_segmentBreadth.index_set():
+        if value(instanceSCED.GenCost_segmentBreadth[idx]) < 0:
+            instanceSCED.GenCost_segmentBreadth[idx] = 0
+            myDiary.hotlineWithLogType(1, f"For GenCost segment input data item with index of {idx}, the segment breadth is negative, so it is set to 0")
 
-    myDiary.hotlineWithLogType(5, "Finish loading input data for pyomo simulation - an instance has been created")
-    print ("Finish loading original input data for pyomo simulation")
-
-    autoFixData = True
-#    # the following block of code may not affect the results unless non-zero pgmax_slack variable exists
-    if autoFixData == True:
-        for idx in instanceSCED.GenCost_segmentBreadth.index_set():
-            if value(instanceSCED.GenCost_segmentBreadth[idx]) < 0:
-                instanceSCED.GenCost_segmentBreadth[idx] = 0
-                myDiary.hotlineWithLogType(1, "For GenCost segment input data item with index of "+str(idx)+ ", the segment breadth is negative, so it is set to 0")
 
     handle_CostCurveSegment_Pgmin = paramManager.getHandle_CostCurveSegment_Pgmin()
     if handle_CostCurveSegment_Pgmin == True:
@@ -284,6 +357,7 @@ for gen in new_generators:
 
     myDiary.hotlineWithLogType(5, "Start to solve pyomo case")
     results = opt.solve(instanceSCED, suffixes=['rc','dual'],tee=True)
+    
     myDiary.hotlineWithLogType(5, "Finish solving pyomo case")
 
     myDiary.hotlineWithLogType(6, "results.Solution.Status: " + str(results.Solution.Status))
@@ -297,31 +371,43 @@ for gen in new_generators:
     print ("Solver Termination message :"), results.solver.termination_message
     #instanceSCED.display()  # all results will be shown, if we need all of them, we'd better redirect them to a file.
 
-    import os
-    fileNameTmp = "genDataGC_Actually.txt"
-    if os.path.isfile(fileNameTmp):
-        os.remove(fileNameTmp)
-    with open(fileNameTmp, 'a') as fileTmp:
-        heading = " Index PgInSvc Pg_init Pgmax Pgmin EnergyRamp SpinRamp HasCostCurveData"
-        heading = heading + "\n"
-        fileTmp.write(heading)
-        for g in instanceSCED.GEN:
-            fileTmp.write("%s %d" % (" ", g))
-            fileTmp.write("%s %d" % (" ", instanceSCED.Gen_isInSvc[g]))
-            fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgInit[g]*baseMVA)))
-            fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgMax[g]*baseMVA)))
-            fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgMin[g]*baseMVA)))
-            fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_energyRamp[g]*baseMVA)))
-            fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_spinRamp[g]*baseMVA)))
-            fileTmp.write("%s %d" % (" ", instanceSCED.Gen_costCurveFlag[g]))
-            fileTmp.write("%s" % ("\n"))
+    # After the solver runs, print the values of renewable generation (Solar and Wind)
+print("\nRenewable Generation After Solver:\n")
 
-    import WriteResults
-    fileName = "resultsGC"
-    isDataForRC = False
-    WriteResults.Write_GenInfo(instanceSCED, fileName, isDataForRC, myDiary, scenario_name)
+# Print Solar generation values after the solver
+solar_gen_value = value(instanceSCED.pg[8])
+print(f"Solar Generator 8 Output (Solar_pg) After Solver: {solar_gen_value} MW")
 
+# Print Wind generation values after the solver
+wind_gen_value = value(instanceSCED.pg[9])
+print(f"Wind Generator 9 Output (Wind_pg) After Solver: {wind_gen_value} MW")
+
+# File writing for generator data
+import os
+fileNameTmp = "genDataGC_Actually.txt"
+if os.path.isfile(fileNameTmp):
+    os.remove(fileNameTmp)
+
+with open(fileNameTmp, 'a') as fileTmp:
+    heading = " Index PgInSvc Pg_init Pgmax Pgmin EnergyRamp SpinRamp HasCostCurveData"
+    heading = heading + "\n"
+    fileTmp.write(heading)
+    
+    # Write the details of each generator in the model
+    for g in instanceSCED.GEN:
+        fileTmp.write("%s %d" % (" ", g))
+        fileTmp.write("%s %d" % (" ", value(instanceSCED.Gen_isInSvc[g])))
+        fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgInit[g]*baseMVA)))
+        fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgMax[g]*baseMVA)))
+        fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_pgMin[g]*baseMVA)))
+        fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_energyRamp[g]*baseMVA)))
+        fileTmp.write("%s %f" % (" ", value(instanceSCED.Gen_spinRamp[g]*baseMVA)))
+        fileTmp.write("%s %d" % (" ", value(instanceSCED.Gen_costCurveFlag[g])))
+        fileTmp.write("%s" % ("\n"))
+
+import WriteResults
+fileName = "resultsGC"
+isDataForRC = False
+WriteResults.Write_GenInfo(instanceSCED, fileName, isDataForRC, myDiary, scenario_name)
 
 myDiary.close()
-
-

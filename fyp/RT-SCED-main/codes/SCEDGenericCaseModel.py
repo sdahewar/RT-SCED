@@ -12,6 +12,8 @@ from pyomo.environ import *
 model = AbstractModel()
 
 
+
+
 ## ****************************************************************************
 ##						  Set
 ## ****************************************************************************
@@ -34,11 +36,7 @@ model.WIND_GEN = Set()  # Set for wind generators
 model.Solar_busNumber = Param(model.SOLAR_GEN)  # Bus number for solar generators
 model.Wind_busNumber = Param(model.WIND_GEN)  # Bus number for wind generators
 
-model.Solar_pgMax = Param(model.SOLAR_GEN, within=NonNegativeReals)  # Max output for solar generators
-model.Wind_pgMax = Param(model.WIND_GEN, within=NonNegativeReals)  # Max output for wind generators
 
-model.Solar_pg = Var(model.SOLAR_GEN, within=NonNegativeReals)  # Solar generation output
-model.Wind_pg = Var(model.WIND_GEN, within=NonNegativeReals)  # Wind generation output
 
 
 ## -------------------------------- Bus Data ----------------------------------
@@ -70,6 +68,8 @@ model.Gen_type = Param(model.GEN, mutable=True)
 # Solar and Wind Generators
 model.Solar_pgMax = Param(model.SOLAR_GEN, within=NonNegativeReals)
 model.Wind_pgMax = Param(model.WIND_GEN, within=NonNegativeReals)
+
+
 
 ## -------------------------------- Gen Cost Data -----------------------------
 model.GenCost_genIdx = Param (model.GENCOST) # Gen index
@@ -165,6 +165,7 @@ model.solarGenLimitConst = Constraint(model.SOLAR_GEN, rule=const_SolarGenLimit)
 def const_WindGenLimit(model, w):
     return model.Wind_pg[w] <= model.Wind_pgMax[w]
 model.windGenLimitConst = Constraint(model.WIND_GEN, rule=const_WindGenLimit)
+
 
 
 ## -------------------------------- System power balance equation -------------

@@ -4,7 +4,7 @@
 # The format should be: parameterName = parameterValue
 # For each line, anything after '//' or '#' will be ignored.
 
-solverName = glpk    # the name of the solver, glpk cbc 
+solverName = cbc    # the name of the solver, glpk cbc 
 solverTimLimit = 1200    # termination condition: maximum time limit in second
 solverOptGap = 0.01    # termination condition: optimization gap 
 
